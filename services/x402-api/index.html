@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ContractScan — Smart Contract Security Scanner</title>
+<meta name="description" content="Scan any smart contract for security risks in seconds. Detect proxies, honeypots, hidden mints, and rug pull patterns. Multi-chain. Free basic scan.">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
+.container { max-width: 840px; margin: 0 auto; padding: 2rem 1rem; }
+header { text-align: center; margin-bottom: 2.5rem; }
+h1 { font-size: 2.4rem; color: #00ff88; margin-bottom: 0.3rem; letter-spacing: -0.5px; }
+h1 span { color: #444; font-size: 0.5em; vertical-align: super; }
+.tagline { color: #aaa; font-size: 1.1rem; margin-bottom: 0.5rem; }
+.tagline strong { color: #fff; }
+.stats { color: #555; font-size: 0.85rem; margin-top: 0.5rem; }
+.stats b { color: #00ff88; }
+
+.scan-box { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.scan-box label { display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.input-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+input[type="text"] { flex: 1; background: #0a0a0f; border: 1px solid #333; border-radius: 6px; padding: 0.75rem; color: #fff; font-family: monospace; font-size: 0.95rem; }
+input[type="text"]::placeholder { color: #444; }
+input[type="text"]:focus { outline: none; border-color: #00ff88; box-shadow: 0 0 0 2px rgba(0,255,136,0.1); }
+select { background: #0a0a0f; border: 1px solid #333; border-radius: 6px; padding: 0.75rem; color: #fff; font-family: monospace; }
+select:focus { outline: none; border-color: #00ff88; }
+button { background: #00ff88; color: #000; border: none; border-radius: 6px; padding: 0.75rem 2rem; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.15s; }
+button:hover { background: #00cc6a; }
+button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+.result { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin-top: 1rem; font-family: monospace; font-size: 0.85rem; line-height: 1.6; display: none; overflow-x: auto; }
+.result.show { display: block; }
+.result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #222; }
+.risk-badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; }
+.risk-high { background: rgba(255,68,68,0.15); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
+.risk-medium { background: rgba(255,170,0,0.15); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
+.risk-low { background: rgba(0,255,136,0.15); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
+.result-json { white-space: pre-wrap; word-break: break-word; }
+
+.why { text-align: center; margin: 2.5rem 0 1.5rem; }
+.why h2 { color: #fff; font-size: 1.3rem; margin-bottom: 0.3rem; }
+.why p { color: #666; font-size: 0.9rem; }
+
+.features { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 2rem; }
+.feature { background: #111118; border: 1px solid #1a1a22; border-radius: 10px; padding: 1.2rem; transition: border-color 0.2s; }
+.feature:hover { border-color: #00ff8844; }
+.feature h3 { color: #00ff88; font-size: 0.9rem; margin-bottom: 0.4rem; }
+.feature p { color: #777; font-size: 0.82rem; line-height: 1.5; }
+
+.pricing { margin: 2rem 0; }
+.pricing h2 { color: #fff; margin-bottom: 1rem; text-align: center; }
+.tier { display: flex; gap: 1rem; }
+.tier-box { flex: 1; background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; position: relative; }
+.tier-box.highlight { border-color: #00ff8844; }
+.tier-box h3 { margin-bottom: 0.5rem; color: #fff; }
+.tier-box .price { color: #00ff88; font-size: 1.5rem; font-weight: bold; margin-bottom: 0.75rem; }
+.tier-box .price small { font-size: 0.6em; color: #888; }
+.tier-box ul { list-style: none; }
+.tier-box ul li { color: #999; font-size: 0.85rem; padding: 0.25rem 0; }
+.tier-box ul li::before { content: "\2713 "; color: #00ff88; font-weight: bold; }
+
+.api-section { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin: 2rem 0; }
+.api-section h2 { color: #fff; margin-bottom: 0.75rem; font-size: 1.1rem; }
+.api-section p { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
+.code-block { background: #0a0a0f; border: 1px solid #1a1a22; border-radius: 6px; padding: 1rem; font-family: monospace; font-size: 0.82rem; color: #ccc; overflow-x: auto; margin-bottom: 0.75rem; white-space: pre; }
+.code-block .comment { color: #555; }
+.code-block .string { color: #00ff88; }
+.code-block .key { color: #ff8844; }
+
+.payment-info { background: #0d1117; border: 1px solid #1a3a2a; border-radius: 10px; padding: 1.2rem; margin: 2rem 0; text-align: center; }
+.payment-info .label { color: #888; font-size: 0.85rem; margin-bottom: 0.3rem; }
+.payment-info code { color: #00ff88; word-break: break-all; font-size: 0.9rem; }
+.payment-info .network { color: #666; font-size: 0.8rem; margin-top: 0.3rem; }
+
+.use-cases { margin: 2rem 0; }
+.use-cases h2 { color: #fff; text-align: center; margin-bottom: 1rem; }
+.use-case-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+.use-case { background: #111118; border: 1px solid #1a1a22; border-radius: 10px; padding: 1rem; text-align: center; }
+.use-case .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.use-case h4 { color: #ddd; font-size: 0.85rem; margin-bottom: 0.3rem; }
+.use-case p { color: #666; font-size: 0.78rem; line-height: 1.4; }
+
+footer { text-align: center; color: #333; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #151515; font-size: 0.8rem; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #333; border-top-color: #00ff88; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 600px) {
+  .features, .use-case-grid { grid-template-columns: 1fr; }
+  .tier { flex-direction: column; }
+  .input-row { flex-direction: column; }
+  h1 { font-size: 1.8rem; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>ContractScan<span>API</span></h1>
+    <p class="tagline">Check any contract for <strong>rug pulls</strong>, <strong>honeypots</strong>, and <strong>hidden risks</strong> before you ape in.</p>
+    <p class="stats"><b>6 chains</b> supported &middot; Bytecode + source code analysis &middot; Pay with <b>USDC</b></p>
+  </header>
+
+  <div class="scan-box">
+    <label>Contract Address</label>
+    <div class="input-row">
+      <input type="text" id="address" placeholder="0x..." spellcheck="false" autocomplete="off">
+      <select id="chain">
+        <option value="base">Base</option>
+        <option value="ethereum">Ethereum</option>
+        <option value="arbitrum">Arbitrum</option>
+        <option value="polygon">Polygon</option>
+        <option value="bsc">BSC</option>
+        <option value="optimism">Optimism</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <select id="mode" onchange="togglePayment()">
+        <option value="basic">Basic Scan (Free)</option>
+        <option value="deep">Deep Scan ($2 USDC)</option>
+      </select>
+      <button id="scanBtn" onclick="doScan()">Scan Contract</button>
+    </div>
+    <div class="input-row" id="paymentRow" style="display:none">
+      <input type="text" id="txHash" placeholder="Paste your Base USDC payment tx hash here" spellcheck="false">
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-header" id="resultHeader" style="display:none">
+      <span id="resultAddr" style="color:#888; font-size:0.8rem"></span>
+      <span id="riskBadge" class="risk-badge"></span>
+    </div>
+    <div class="result-json" id="resultJson"></div>
+  </div>
+
+  <div class="why">
+    <h2>Don't trust. Verify.</h2>
+    <p>67% of new tokens on DEXes have at least one critical risk flag.</p>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <h3>Proxy Detection</h3>
+      <p>Identifies EIP-1967 upgradeable proxies and admin addresses. Know if the contract can change under your feet.</p>
+    </div>
+    <div class="feature">
+      <h3>Ownership Analysis</h3>
+      <p>Checks owner privileges, token concentration, and whether ownership is truly renounced.</p>
+    </div>
+    <div class="feature">
+      <h3>Rug Pull Flags</h3>
+      <p>Detects hidden mints, pause functions, blacklists, fee manipulation, and honeypot patterns in bytecode.</p>
+    </div>
+    <div class="feature">
+      <h3>Source Code Audit</h3>
+      <p>Deep scan pulls verified source from Sourcify and checks for reentrancy, unchecked calls, and access control issues.</p>
+    </div>
+  </div>
+
+  <div class="pricing">
+    <h2>Simple Pricing</h2>
+    <div class="tier">
+      <div class="tier-box">
+        <h3>Basic</h3>
+        <div class="price">Free</div>
+        <ul>
+          <li>Proxy detection</li>
+          <li>Ownership info</li>
+          <li>Token metadata</li>
+          <li>Bytecode risk flags</li>
+          <li>Risk score (0-100)</li>
+        </ul>
+      </div>
+      <div class="tier-box highlight">
+        <h3>Deep Scan</h3>
+        <div class="price">$2 <small>USDC per scan</small></div>
+        <ul>
+          <li>Everything in Basic</li>
+          <li>Verified source code analysis</li>
+          <li>Reentrancy detection</li>
+          <li>Hidden owner functions</li>
+          <li>Honeypot pattern matching</li>
+          <li>11 vulnerability patterns</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="use-cases">
+    <h2>Built For</h2>
+    <div class="use-case-grid">
+      <div class="use-case">
+        <div class="icon">&#x1F916;</div>
+        <h4>Trading Bots</h4>
+        <p>Pre-screen tokens via API before automated buys. No API key needed.</p>
+      </div>
+      <div class="use-case">
+        <div class="icon">&#x1F6E1;</div>
+        <h4>DeFi Users</h4>
+        <p>Check contracts before you interact. Catch honeypots before they catch you.</p>
+      </div>
+      <div class="use-case">
+        <div class="icon">&#x1F527;</div>
+        <h4>Developers</h4>
+        <p>Integrate security checks into your dApp or workflow via simple REST API.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="api-section">
+    <h2>REST API</h2>
+    <p>No signup. No API key. Just call the endpoint. Pay per deep scan with on-chain USDC.</p>
+    <div class="code-block"><span class="comment"># Free basic scan</span>
+curl <span class="string">/scan?address=0xCONTRACT&chain=base</span>
+
+<span class="comment"># Paid deep scan ($2 USDC on Base)</span>
+<span class="comment"># 1. Send 2 USDC to wallet below on Base</span>
+<span class="comment"># 2. Pass tx hash as proof of payment</span>
+curl <span class="string">/scan?address=0xCONTRACT&chain=base&mode=deep&tx_hash=0xYOUR_TX</span></div>
+    <div class="code-block"><span class="comment"># Response (basic)</span>
+{
+  <span class="key">"address"</span>: "0x...",
+  <span class="key">"chain"</span>: "base",
+  <span class="key">"risk_score"</span>: 35,
+  <span class="key">"is_proxy"</span>: false,
+  <span class="key">"owner"</span>: "0x...",
+  <span class="key">"bytecode_flags"</span>: ["has_pause", "has_blacklist"],
+  ...
+}</div>
+  </div>
+
+  <div class="payment-info">
+    <div class="label">Deep scan payment address</div>
+    <code>0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3</code>
+    <div class="network">Base network &middot; USDC only &middot; $2 per scan</div>
+  </div>
+
+  <footer>
+    ContractScan &mdash; Smart contract security analysis API
+  </footer>
+</div>
+
+<script>
+async function doScan() {
+  const addr = document.getElementById('address').value.trim();
+  const chain = document.getElementById('chain').value;
+  const mode = document.getElementById('mode').value;
+  const txHash = document.getElementById('txHash').value.trim();
+  const btn = document.getElementById('scanBtn');
+  const out = document.getElementById('result');
+  const header = document.getElementById('resultHeader');
+  const badge = document.getElementById('riskBadge');
+  const addrEl = document.getElementById('resultAddr');
+  const jsonEl = document.getElementById('resultJson');
+
+  if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+    jsonEl.textContent = 'Invalid address format. Must be 0x + 40 hex characters.';
+    header.style.display = 'none';
+    out.className = 'result show';
+    return;
+  }
+
+  if (mode === 'deep' && !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+    jsonEl.textContent = 'Deep scan requires a valid Base USDC payment tx hash.\n\n1. Send $2 USDC on Base to:\n   0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3\n2. Paste the transaction hash above\n3. Click Scan Contract';
+    header.style.display = 'none';
+    out.className = 'result show';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Scanning...';
+  jsonEl.textContent = 'Analyzing contract on ' + chain + '...';
+  header.style.display = 'none';
+  out.className = 'result show';
+
+  try {
+    let url = '/scan?address=' + addr + '&chain=' + chain + '&mode=' + mode;
+    if (mode === 'deep') url += '&tx_hash=' + txHash;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.risk_score !== undefined) {
+      header.style.display = 'flex';
+      addrEl.textContent = addr.slice(0, 6) + '...' + addr.slice(-4) + ' on ' + chain;
+      const score = data.risk_score;
+      if (score >= 60) { badge.className = 'risk-badge risk-high'; badge.textContent = 'High Risk (' + score + ')'; }
+      else if (score >= 30) { badge.className = 'risk-badge risk-medium'; badge.textContent = 'Medium Risk (' + score + ')'; }
+      else { badge.className = 'risk-badge risk-low'; badge.textContent = 'Low Risk (' + score + ')'; }
+    } else {
+      header.style.display = 'none';
+    }
+
+    jsonEl.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    header.style.display = 'none';
+    jsonEl.textContent = 'Error: ' + e.message;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Scan Contract';
+}
+
+function togglePayment() {
+  document.getElementById('paymentRow').style.display =
+    document.getElementById('mode').value === 'deep' ? 'flex' : 'none';
+}
+
+// Enter key triggers scan
+document.getElementById('address').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doScan();
+});
+
+togglePayment();
+</script>
+</body>
+</html>

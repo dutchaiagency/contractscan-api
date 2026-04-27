@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+.secrets/
+evidence/*.jsonl
+evidence/*.csv
+*.key
