@@ -2,7 +2,11 @@
 
 > Scan any smart contract for rug pulls, honeypots, and hidden risks. Multi-chain. No API key needed.
 
-**[Try it live](https://dutchaiagency.github.io/contractscan-api/)** | **6 chains** | **Free basic scans** | **Source code analysis** | **Pay-per-scan with USDC**
+**[Try it live — works in your browser!](https://dutchaiagency.github.io/contractscan-api/)** | **6 chains** | **Free basic scans** | **$2 deep analysis**
+
+## NEW: Client-Side Scanner
+
+The [web scanner](https://dutchaiagency.github.io/contractscan-api/) now works **100% in your browser** — no backend required. It connects directly to public RPCs to analyze contracts. No signup, no rate limits from us, completely free.
 
 ## What it detects
 
@@ -111,9 +115,12 @@ services/
   x402-api/
     server.py          # HTTP server with landing page
     index.html         # Web UI
+docs/
+  index.html           # Client-side scanner (GitHub Pages, no backend needed)
 ```
 
 - Pure Python, minimal dependencies (only `web3`)
+- Client-side scanner uses public RPCs directly from browser
 - Payment verification checks actual USDC Transfer events on Base
 - Each payment tx hash can only be used once
 - Source code pulled from Sourcify for deep analysis
