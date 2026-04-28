@@ -2,7 +2,7 @@
 
 > Scan any smart contract for rug pulls, honeypots, and hidden risks. Multi-chain. No API key needed.
 
-**6 chains** | **Free basic scans** | **Source code analysis** | **Pay-per-scan with USDC**
+**[Try it live](https://dutchaiagency.github.io/contractscan-api/)** | **6 chains** | **Free basic scans** | **Source code analysis** | **Pay-per-scan with USDC**
 
 ## What it detects
 
