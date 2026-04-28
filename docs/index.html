@@ -9,10 +9,16 @@
 <meta property="og:description" content="Check any contract for rug pulls, honeypots, and hidden risks before you ape in. 6 chains supported. Free. Works instantly in your browser.">
 <meta property="og:url" content="https://dutchaiagency.github.io/contractscan-api/">
 <meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ContractScan — Free Contract Scanner">
 <meta name="twitter:description" content="Smart contract security scanner. Free basic scan. Works in your browser. 6 chains.">
+<meta name="twitter:site" content="@dutchaiagency">
+<meta property="og:image" content="https://dutchaiagency.github.io/contractscan-api/og-image.svg">
+<meta name="twitter:image" content="https://dutchaiagency.github.io/contractscan-api/og-image.svg">
 <link rel="canonical" href="https://dutchaiagency.github.io/contractscan-api/">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"ContractScan","url":"https://dutchaiagency.github.io/contractscan-api/","description":"Free smart contract security scanner. Detect rug pulls, honeypots, and hidden risks. Multi-chain. Works in your browser.","applicationCategory":"SecurityApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Organization","name":"Dutch AI Agency","url":"https://github.com/dutchaiagency"}}
+</script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
@@ -79,7 +85,12 @@ button:disabled { background: #333; color: #666; cursor: not-allowed; }
 .share-bar button { padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px; }
 .share-bar .btn-copy { background: #222; color: #aaa; }
 .share-bar .btn-copy:hover { background: #333; color: #fff; }
+.btn-twitter { background: #1da1f2 !important; color: #fff !important; }
+.btn-twitter:hover { background: #0c85d0 !important; }
 .copied { background: #00ff88 !important; color: #000 !important; }
+
+.liq-bar { height: 6px; background: #1a1a22; border-radius: 3px; margin-top: 0.4rem; overflow: hidden; }
+.liq-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
 
 /* Error display */
 .error-msg { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; color: #ff6666; font-family: monospace; font-size: 0.85rem; }
@@ -187,6 +198,8 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
           <li>Token metadata (ERC20)</li>
           <li>Bytecode risk patterns</li>
           <li>Honeypot indicators</li>
+          <li>DEX liquidity check</li>
+          <li>SELFDESTRUCT detection</li>
           <li>Risk score (0-100)</li>
         </ul>
       </div>
@@ -308,6 +321,43 @@ const PROXY_SLOTS = {
   admin: '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103',
   beacon: '0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50'
 };
+
+// Uniswap V2 factories + WETH per chain
+const DEX = {
+  ethereum: { factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f', weth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' },
+  base:     { factory: '0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6', weth: '0x4200000000000000000000000000000000000006' },
+  arbitrum: { factory: '0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9', weth: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' },
+  polygon:  { factory: '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32', weth: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270' },
+  bsc:      { factory: '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73', weth: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' },
+  optimism: { factory: '0x0c3c1c532F1e39EdF36BE9Fe0bE1410313E074Bf', weth: '0x4200000000000000000000000000000000000006' }
+};
+
+async function checkLiquidity(address, chain) {
+  const dex = DEX[chain];
+  if (!dex) return null;
+  try {
+    // getPair(tokenA, tokenB) = 0xe6a43905
+    const tokenA = address.slice(2).toLowerCase().padStart(64, '0');
+    const tokenB = dex.weth.slice(2).toLowerCase().padStart(64, '0');
+    const pairData = '0xe6a43905' + tokenA + tokenB;
+    const pairResult = await rpcCall(chain, 'eth_call', [{ to: dex.factory, data: pairData }, 'latest']);
+    const pairAddr = decodeAddress(pairResult);
+    if (!pairAddr) return { hasPair: false, reserves: null };
+    // getReserves() = 0x0902f1ac
+    const reservesResult = await rpcCall(chain, 'eth_call', [{ to: pairAddr, data: '0x0902f1ac' }, 'latest']);
+    if (!reservesResult || reservesResult === '0x') return { hasPair: true, reserves: null };
+    const hex = reservesResult.slice(2);
+    const r0 = BigInt('0x' + hex.slice(0, 64));
+    const r1 = BigInt('0x' + hex.slice(64, 128));
+    // Determine which reserve is WETH
+    const addrLow = address.toLowerCase();
+    const wethLow = dex.weth.toLowerCase();
+    const wethReserve = addrLow < wethLow ? r1 : r0;
+    const tokenReserve = addrLow < wethLow ? r0 : r1;
+    const ethAmount = Number(wethReserve) / 1e18;
+    return { hasPair: true, pairAddr, ethLiquidity: ethAmount, tokenReserve: tokenReserve.toString() };
+  } catch { return null; }
+}
 
 async function rpcCall(chain, method, params) {
   const res = await fetch(RPC[chain], {
@@ -443,6 +493,22 @@ function renderResult(r, out) {
     verifiedHtml = `<div class="result-item"><div class="label">Source Code</div><div class="value yellow">Not verified on Sourcify</div></div>`;
   }
 
+  let liqHtml = '';
+  if (r.dex_pair !== undefined) {
+    if (!r.dex_pair) {
+      liqHtml = `<div class="result-item"><div class="label">DEX Liquidity</div><div class="value red">No pair found</div></div>`;
+    } else if (r.eth_liquidity !== undefined) {
+      const ethVal = r.eth_liquidity;
+      const liqColor = ethVal < 0.5 ? 'red' : ethVal < 5 ? 'yellow' : 'green';
+      const liqLabel = ethVal < 0.5 ? 'Very Low' : ethVal < 5 ? 'Low' : ethVal < 50 ? 'Moderate' : 'Good';
+      const fillPct = Math.min(100, Math.log10(Math.max(ethVal, 0.01) + 1) * 50);
+      const fillColor = ethVal < 0.5 ? '#ff4444' : ethVal < 5 ? '#ffaa00' : '#00ff88';
+      liqHtml = `<div class="result-item"><div class="label">DEX Liquidity</div><div class="value ${liqColor}">${liqLabel} (${ethVal.toFixed(2)} ETH)</div><div class="liq-bar"><div class="liq-fill" style="width:${fillPct}%;background:${fillColor}"></div></div></div>`;
+    } else {
+      liqHtml = `<div class="result-item"><div class="label">DEX Liquidity</div><div class="value blue">Pair exists</div></div>`;
+    }
+  }
+
   let ownerHtml = '';
   if (r.owner) {
     const zeroAddr = '0x0000000000000000000000000000000000000000';
@@ -470,12 +536,14 @@ function renderResult(r, out) {
         ${proxyHtml}
         ${ownerHtml}
         ${verifiedHtml}
+        ${liqHtml}
         ${r.risk_flags && r.risk_flags.length > 0 ? `<div class="result-item full"><div class="label">Risk Flags</div>${flagsHtml}</div>` : ''}
         ${r.detected_functions && r.detected_functions.length > 0 ? `<div class="result-item full"><div class="label">Detected Functions</div>${funcsHtml}</div>` : ''}
       </div>
     </div>
     <div class="share-bar">
       <button class="btn-copy" onclick="copyShareLink()">Copy Share Link</button>
+      <button class="btn-copy btn-twitter" onclick="tweetResult()">Share on X</button>
       <button class="btn-copy" onclick="copyJSON()">Copy JSON</button>
     </div>
   `;
@@ -486,9 +554,10 @@ function renderResult(r, out) {
 }
 
 async function analyzeContract(address, chain) {
-  const [code, sourcifyResult] = await Promise.all([
+  const [code, sourcifyResult, liquidityResult] = await Promise.all([
     rpcCall(chain, 'eth_getCode', [address, 'latest']),
-    checkSourcify(address, chain)
+    checkSourcify(address, chain),
+    checkLiquidity(address, chain)
   ]);
 
   if (!code || code === '0x') {
@@ -552,9 +621,27 @@ async function analyzeContract(address, chain) {
     riskFlags.push('minimal_bytecode');
   }
 
+  // SELFDESTRUCT opcode (0xff) — check in bytecode patterns
+  // Look for ff preceded by common patterns (SELFDESTRUCT is often near JUMPDEST/PUSH)
+  if (codeHex.match(/(?:5b|60[0-9a-f]{2}|61[0-9a-f]{4})ff/) && codeSize < 50000) {
+    riskScore += 15;
+    riskFlags.push('SELFDESTRUCT opcode');
+  }
+
   // Sourcify verification reduces risk
   if (sourcifyResult === 'full') { riskScore -= 10; riskFlags.push('sourcify_verified'); }
   else if (sourcifyResult === 'partial') { riskScore -= 5; riskFlags.push('sourcify_partial'); }
+
+  // Liquidity analysis
+  if (liquidityResult) {
+    if (!liquidityResult.hasPair) {
+      riskScore += 15;
+      riskFlags.push('no_dex_pair');
+    } else if (liquidityResult.ethLiquidity !== undefined && liquidityResult.ethLiquidity < 0.5) {
+      riskScore += 10;
+      riskFlags.push('very_low_liquidity');
+    }
+  }
 
   riskScore = Math.max(0, Math.min(100, riskScore));
 
@@ -580,6 +667,15 @@ async function analyzeContract(address, chain) {
   if (decimals !== null) result.decimals = Number(decimals);
   result.detected_functions = detectedFunctions;
 
+  // Liquidity data
+  if (liquidityResult) {
+    result.dex_pair = liquidityResult.hasPair;
+    if (liquidityResult.ethLiquidity !== undefined) {
+      result.eth_liquidity = liquidityResult.ethLiquidity;
+    }
+    if (liquidityResult.pairAddr) result.pair_address = liquidityResult.pairAddr;
+  }
+
   return result;
 }
 
@@ -601,6 +697,23 @@ function copyShareLink() {
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = 'Copy Share Link'; btn.classList.remove('copied'); }, 1500);
   });
+}
+
+function tweetResult() {
+  const addr = document.getElementById('address').value.trim();
+  const chain = document.getElementById('chain').value;
+  const out = document.getElementById('result');
+  const r = out._resultJSON ? JSON.parse(out._resultJSON) : null;
+  const url = `${window.location.origin}${window.location.pathname}?address=${addr}&chain=${chain}`;
+  let text = `I just scanned ${addr.slice(0,6)}...${addr.slice(-4)} on ${chain}`;
+  if (r) {
+    text += ` — Risk: ${r.risk_level} (${r.risk_score}/100)`;
+    if (r.token_symbol) text = `I just scanned $${r.token_symbol} on ${chain} — Risk: ${r.risk_level} (${r.risk_score}/100)`;
+    if (r.eth_liquidity !== undefined) text += ` | Liquidity: ${r.eth_liquidity.toFixed(1)} ETH`;
+  }
+  text += `\n\nCheck any contract for free:`;
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+  window.open(tweetUrl, '_blank', 'width=550,height=420');
 }
 
 function copyJSON() {
