@@ -3,33 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ContractScan — Smart Contract Security Scanner API</title>
-<meta name="description" content="Scan any smart contract for security risks in seconds. Detect proxies, honeypots, hidden mints, and rug pull patterns. Multi-chain. Free basic scan. Pay-per-use deep analysis.">
-<meta property="og:title" content="ContractScan — Smart Contract Security Scanner">
-<meta property="og:description" content="Check any contract for rug pulls, honeypots, and hidden risks before you ape in. 6 chains supported. Free basic scan.">
+<title>ContractScan — Free Smart Contract Security Scanner</title>
+<meta name="description" content="Scan any smart contract for security risks in seconds. Detect proxies, honeypots, hidden mints, and rug pull patterns. Multi-chain. Works in your browser — no signup, no API key.">
+<meta property="og:title" content="ContractScan — Free Smart Contract Security Scanner">
+<meta property="og:description" content="Check any contract for rug pulls, honeypots, and hidden risks before you ape in. 6 chains supported. Free. Works instantly in your browser.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="ContractScan API">
-<meta name="twitter:description" content="Smart contract security scanner. Free basic scan, $2 deep analysis. 6 chains.">
+<meta name="twitter:title" content="ContractScan — Free Contract Scanner">
+<meta name="twitter:description" content="Smart contract security scanner. Free basic scan. Works in your browser. 6 chains.">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
 .container { max-width: 840px; margin: 0 auto; padding: 2rem 1rem; }
 header { text-align: center; margin-bottom: 2.5rem; }
 h1 { font-size: 2.4rem; color: #00ff88; margin-bottom: 0.3rem; letter-spacing: -0.5px; }
-h1 span { color: #444; font-size: 0.5em; vertical-align: super; }
 .tagline { color: #aaa; font-size: 1.1rem; margin-bottom: 0.5rem; }
 .tagline strong { color: #fff; }
-.stats { color: #555; font-size: 0.85rem; margin-top: 0.5rem; }
-.stats b { color: #00ff88; }
-
-.api-url-bar { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1rem 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-.api-url-bar label { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-.api-url-bar input { flex: 1; background: #0a0a0f; border: 1px solid #333; border-radius: 6px; padding: 0.5rem; color: #00ff88; font-family: monospace; font-size: 0.85rem; }
-.api-url-bar input:focus { outline: none; border-color: #00ff88; }
-.api-url-bar .status { width: 10px; height: 10px; border-radius: 50%; background: #333; flex-shrink: 0; }
-.api-url-bar .status.online { background: #00ff88; }
-.api-url-bar .status.offline { background: #ff4444; }
+.badge { display: inline-block; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: #00ff88; padding: 0.2rem 0.7rem; border-radius: 20px; font-size: 0.75rem; margin-top: 0.5rem; }
 
 .scan-box { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
 .scan-box label { display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -42,6 +32,8 @@ select:focus { outline: none; border-color: #00ff88; }
 button { background: #00ff88; color: #000; border: none; border-radius: 6px; padding: 0.75rem 2rem; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.15s; }
 button:hover { background: #00cc6a; }
 button:disabled { background: #333; color: #666; cursor: not-allowed; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #666; border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .result { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin-top: 1rem; font-family: monospace; font-size: 0.85rem; line-height: 1.6; display: none; overflow-x: auto; }
 .result.show { display: block; }
@@ -50,64 +42,46 @@ button:disabled { background: #333; color: #666; cursor: not-allowed; }
 .risk-high { background: rgba(255,68,68,0.15); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
 .risk-medium { background: rgba(255,170,0,0.15); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
 .risk-low { background: rgba(0,255,136,0.15); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
-.result-json { white-space: pre-wrap; word-break: break-word; }
+.result-addr { color: #888; font-size: 0.8rem; }
+#resultJson { white-space: pre-wrap; word-break: break-all; }
 
-.why { text-align: center; margin: 2.5rem 0 1.5rem; }
-.why h2 { color: #fff; font-size: 1.3rem; margin-bottom: 0.3rem; }
-.why p { color: #666; font-size: 0.9rem; }
+.section { margin-top: 2.5rem; }
+.section h2 { color: #fff; font-size: 1.3rem; margin-bottom: 1rem; }
+.tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.tier-box { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.2rem; }
+.tier-box.highlight { border-color: #00ff88; }
+.tier-box h3 { color: #fff; margin-bottom: 0.3rem; }
+.tier-box .price { color: #00ff88; font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+.tier-box ul { list-style: none; padding: 0; }
+.tier-box li { padding: 0.2rem 0; color: #aaa; font-size: 0.85rem; }
+.tier-box li::before { content: "\2713 "; color: #00ff88; }
 
-.features { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 2rem; }
-.feature { background: #111118; border: 1px solid #1a1a22; border-radius: 10px; padding: 1.2rem; transition: border-color 0.2s; }
-.feature:hover { border-color: #00ff8844; }
-.feature h3 { color: #00ff88; font-size: 0.9rem; margin-bottom: 0.4rem; }
-.feature p { color: #777; font-size: 0.82rem; line-height: 1.5; }
+.use-case-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.use-case { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.2rem; text-align: center; }
+.use-case .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.use-case h4 { color: #fff; margin-bottom: 0.3rem; }
+.use-case p { color: #888; font-size: 0.8rem; }
 
-.pricing { margin: 2rem 0; }
-.pricing h2 { color: #fff; margin-bottom: 1rem; text-align: center; }
-.tier { display: flex; gap: 1rem; }
-.tier-box { flex: 1; background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; }
-.tier-box.highlight { border-color: #00ff8844; }
-.tier-box h3 { margin-bottom: 0.5rem; color: #fff; }
-.tier-box .price { color: #00ff88; font-size: 1.5rem; font-weight: bold; margin-bottom: 0.75rem; }
-.tier-box .price small { font-size: 0.6em; color: #888; }
-.tier-box ul { list-style: none; }
-.tier-box ul li { color: #999; font-size: 0.85rem; padding: 0.25rem 0; }
-.tier-box ul li::before { content: "\2713 "; color: #00ff88; font-weight: bold; }
+.code-block { background: #0a0a0f; border: 1px solid #222; border-radius: 8px; padding: 1rem; margin: 0.75rem 0; font-family: monospace; font-size: 0.8rem; line-height: 1.6; overflow-x: auto; white-space: pre; }
+.comment { color: #555; }
+.string { color: #00ff88; }
+.key { color: #88aaff; }
 
-.api-section { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin: 2rem 0; }
-.api-section h2 { color: #fff; margin-bottom: 0.75rem; font-size: 1.1rem; }
-.api-section p { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
-.code-block { background: #0a0a0f; border: 1px solid #1a1a22; border-radius: 6px; padding: 1rem; font-family: monospace; font-size: 0.82rem; color: #ccc; overflow-x: auto; margin-bottom: 0.75rem; white-space: pre; }
-.code-block .comment { color: #555; }
-.code-block .string { color: #00ff88; }
-.code-block .key { color: #ff8844; }
+.payment-info { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.2rem; margin-top: 1.5rem; text-align: center; }
+.payment-info .label { color: #888; font-size: 0.8rem; margin-bottom: 0.3rem; }
+.payment-info code { color: #00ff88; font-size: 0.9rem; word-break: break-all; }
+.payment-info .network { color: #555; font-size: 0.75rem; margin-top: 0.3rem; }
 
-.payment-info { background: #0d1117; border: 1px solid #1a3a2a; border-radius: 10px; padding: 1.2rem; margin: 2rem 0; text-align: center; }
-.payment-info .label { color: #888; font-size: 0.85rem; margin-bottom: 0.3rem; }
-.payment-info code { color: #00ff88; word-break: break-all; font-size: 0.9rem; }
-.payment-info .network { color: #666; font-size: 0.8rem; margin-top: 0.3rem; }
+.github-cta { text-align: center; margin-top: 2rem; }
+.github-cta a { color: #00ff88; text-decoration: none; font-weight: bold; font-size: 1.1rem; }
+.github-cta a:hover { text-decoration: underline; }
+.github-cta p { color: #555; font-size: 0.8rem; margin-top: 0.3rem; }
 
-.use-cases { margin: 2rem 0; }
-.use-cases h2 { color: #fff; text-align: center; margin-bottom: 1rem; }
-.use-case-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
-.use-case { background: #111118; border: 1px solid #1a1a22; border-radius: 10px; padding: 1rem; text-align: center; }
-.use-case .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
-.use-case h4 { color: #ddd; font-size: 0.85rem; margin-bottom: 0.3rem; }
-.use-case p { color: #666; font-size: 0.78rem; line-height: 1.4; }
+footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #111; }
 
-.github-cta { text-align: center; margin: 2rem 0; }
-.github-cta a { display: inline-block; background: #1a1a22; color: #fff; text-decoration: none; padding: 0.8rem 2rem; border-radius: 8px; border: 1px solid #333; font-weight: bold; transition: border-color 0.2s; }
-.github-cta a:hover { border-color: #00ff88; }
-.github-cta p { color: #555; font-size: 0.8rem; margin-top: 0.5rem; }
-
-footer { text-align: center; color: #333; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #151515; font-size: 0.8rem; }
-.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #333; border-top-color: #00ff88; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
-@keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 600px) {
-  .features, .use-case-grid { grid-template-columns: 1fr; }
-  .tier { flex-direction: column; }
+  .tier-grid, .use-case-grid { grid-template-columns: 1fr; }
   .input-row { flex-direction: column; }
-  .api-url-bar { flex-direction: column; }
   h1 { font-size: 1.8rem; }
 }
 </style>
@@ -115,85 +89,47 @@ footer { text-align: center; color: #333; margin-top: 3rem; padding-top: 1.5rem;
 <body>
 <div class="container">
   <header>
-    <h1>ContractScan<span>API</span></h1>
-    <p class="tagline">Check any contract for <strong>rug pulls</strong>, <strong>honeypots</strong>, and <strong>hidden risks</strong> before you ape in.</p>
-    <p class="stats"><b>6 chains</b> supported &middot; Bytecode + source code analysis &middot; Pay with <b>USDC on Base</b></p>
+    <h1>ContractScan</h1>
+    <p class="tagline">Scan any smart contract for <strong>security risks</strong> in seconds</p>
+    <div class="badge">100% Client-Side &mdash; No Backend Required &mdash; Free</div>
   </header>
-
-  <div class="api-url-bar">
-    <label>API Endpoint</label>
-    <input type="text" id="apiUrl" value="" placeholder="https://your-api-url.onrender.com">
-    <div class="status" id="apiStatus" title="Checking..."></div>
-  </div>
 
   <div class="scan-box">
     <label>Contract Address</label>
     <div class="input-row">
-      <input type="text" id="address" placeholder="0x..." spellcheck="false" autocomplete="off">
+      <input type="text" id="address" placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f..." autocomplete="off" spellcheck="false">
       <select id="chain">
-        <option value="base">Base</option>
         <option value="ethereum">Ethereum</option>
+        <option value="base">Base</option>
         <option value="arbitrum">Arbitrum</option>
         <option value="polygon">Polygon</option>
         <option value="bsc">BSC</option>
         <option value="optimism">Optimism</option>
       </select>
     </div>
-    <div class="input-row">
-      <select id="mode" onchange="togglePayment()">
-        <option value="basic">Basic Scan (Free)</option>
-        <option value="deep">Deep Scan ($2 USDC)</option>
-      </select>
-      <button id="scanBtn" onclick="doScan()">Scan Contract</button>
-    </div>
-    <div class="input-row" id="paymentRow" style="display:none">
-      <input type="text" id="txHash" placeholder="Paste your Base USDC payment tx hash here" spellcheck="false">
-    </div>
+    <button id="scanBtn" onclick="doScan()">Scan Contract</button>
   </div>
 
   <div class="result" id="result">
     <div class="result-header" id="resultHeader" style="display:none">
-      <span id="resultAddr" style="color:#888; font-size:0.8rem"></span>
-      <span id="riskBadge" class="risk-badge"></span>
+      <span class="result-addr" id="resultAddr"></span>
+      <span class="risk-badge" id="riskBadge"></span>
     </div>
-    <div class="result-json" id="resultJson"></div>
+    <pre id="resultJson"></pre>
   </div>
 
-  <div class="why">
-    <h2>Don't trust. Verify.</h2>
-    <p>67% of new tokens on DEXes have at least one critical risk flag.</p>
-  </div>
-
-  <div class="features">
-    <div class="feature">
-      <h3>Proxy Detection</h3>
-      <p>Identifies EIP-1967 upgradeable proxies and admin addresses. Know if the contract can change under your feet.</p>
-    </div>
-    <div class="feature">
-      <h3>Ownership Analysis</h3>
-      <p>Checks owner privileges, token concentration, and whether ownership is truly renounced.</p>
-    </div>
-    <div class="feature">
-      <h3>Rug Pull Flags</h3>
-      <p>Detects hidden mints, pause functions, blacklists, fee manipulation, and honeypot patterns in bytecode.</p>
-    </div>
-    <div class="feature">
-      <h3>Source Code Audit</h3>
-      <p>Deep scan pulls verified source from Sourcify and checks for reentrancy, unchecked calls, and access control issues.</p>
-    </div>
-  </div>
-
-  <div class="pricing">
-    <h2>Simple Pricing</h2>
-    <div class="tier">
+  <div class="section">
+    <h2>What We Check</h2>
+    <div class="tier-grid">
       <div class="tier-box">
-        <h3>Basic</h3>
+        <h3>Basic Scan</h3>
         <div class="price">Free</div>
         <ul>
-          <li>Proxy detection</li>
-          <li>Ownership info</li>
-          <li>Token metadata</li>
-          <li>Bytecode risk flags</li>
+          <li>Contract verification</li>
+          <li>Proxy detection (EIP-1967)</li>
+          <li>Owner / admin analysis</li>
+          <li>Token metadata (ERC20)</li>
+          <li>Bytecode risk patterns</li>
           <li>Risk score (0-100)</li>
         </ul>
       </div>
@@ -212,117 +148,138 @@ footer { text-align: center; color: #333; margin-top: 3rem; padding-top: 1.5rem;
     </div>
   </div>
 
-  <div class="use-cases">
+  <div class="section">
     <h2>Built For</h2>
     <div class="use-case-grid">
       <div class="use-case">
         <div class="icon">&#x1F916;</div>
         <h4>Trading Bots</h4>
-        <p>Pre-screen tokens via API before automated buys. No API key needed.</p>
+        <p>Pre-screen tokens via API before automated buys.</p>
       </div>
       <div class="use-case">
         <div class="icon">&#x1F6E1;</div>
         <h4>DeFi Users</h4>
-        <p>Check contracts before you interact. Catch honeypots before they catch you.</p>
+        <p>Check contracts before you interact. Catch honeypots early.</p>
       </div>
       <div class="use-case">
         <div class="icon">&#x1F527;</div>
         <h4>Developers</h4>
-        <p>Integrate security checks into your dApp or workflow via simple REST API.</p>
+        <p>Integrate security checks into your dApp or workflow.</p>
       </div>
     </div>
   </div>
 
-  <div class="api-section">
+  <div class="section">
     <h2>REST API</h2>
-    <p>No signup. No API key. Just call the endpoint. Pay per deep scan with on-chain USDC.</p>
+    <p style="color:#aaa;margin-bottom:0.75rem">Self-host with Docker or use our hosted endpoint. No signup. No API key.</p>
     <div class="code-block"><span class="comment"># Free basic scan</span>
-curl <span class="string" id="curlBasic">https://YOUR-API/scan?address=0xCONTRACT&chain=base</span>
+curl <span class="string">https://your-instance.onrender.com/scan?address=0xCONTRACT&chain=base</span>
 
-<span class="comment"># Paid deep scan ($2 USDC on Base)</span>
-<span class="comment"># 1. Send 2 USDC to wallet below on Base</span>
-<span class="comment"># 2. Pass tx hash as proof of payment</span>
-curl <span class="string" id="curlDeep">https://YOUR-API/scan?address=0xCONTRACT&chain=base&mode=deep&tx_hash=0xYOUR_TX</span></div>
-    <div class="code-block"><span class="comment"># Response (basic)</span>
-{
-  <span class="key">"address"</span>: "0x...",
-  <span class="key">"chain"</span>: "base",
-  <span class="key">"risk_score"</span>: 35,
-  <span class="key">"is_proxy"</span>: false,
-  <span class="key">"owner"</span>: "0x...",
-  <span class="key">"risk_flags"</span>: ["has_pause", "has_blacklist"],
-  ...
-}</div>
+<span class="comment"># Deep scan ($2 USDC on Base)</span>
+curl <span class="string">https://your-instance.onrender.com/scan?address=0xCONTRACT&chain=base&mode=deep&tx_hash=0xPAYMENT_TX</span></div>
   </div>
 
   <div class="payment-info">
-    <div class="label">Deep scan payment address</div>
+    <div class="label">Deep scan payment address (Base network, USDC)</div>
     <code>0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3</code>
-    <div class="network">Base network &middot; USDC only &middot; $2 per scan</div>
+    <div class="network">Base mainnet &middot; USDC only &middot; $2 per scan</div>
   </div>
 
   <div class="github-cta">
     <a href="https://github.com/dutchaiagency/contractscan-api">View on GitHub &rarr;</a>
-    <p>Self-host with Docker &middot; One-click deploy to Render.com</p>
+    <p>Self-host with Docker &middot; One-click deploy to Render.com &middot; MIT License</p>
   </div>
 
   <footer>
-    ContractScan &mdash; Smart contract security analysis API &middot; Built by <a href="https://github.com/dutchaiagency" style="color:#444;text-decoration:none">Dutch AI Agency</a>
+    ContractScan &mdash; Smart contract security scanner &middot; Built by <a href="https://github.com/dutchaiagency" style="color:#444;text-decoration:none">Dutch AI Agency</a>
   </footer>
 </div>
 
 <script>
-const API_STORAGE_KEY = 'contractscan_api_url';
+// RPC endpoints (public, free)
+const RPC = {
+  ethereum: 'https://eth.drpc.org',
+  base: 'https://mainnet.base.org',
+  arbitrum: 'https://arb1.arbitrum.io/rpc',
+  polygon: 'https://polygon-rpc.com',
+  bsc: 'https://bsc-dataseed.binance.org',
+  optimism: 'https://mainnet.optimism.io'
+};
 
-function getApiUrl() {
-  return document.getElementById('apiUrl').value.replace(/\/+$/, '');
+// ERC20 function selectors
+const SEL = {
+  name: '0x06fdde03',
+  symbol: '0x95d89b41',
+  totalSupply: '0x18160ddd',
+  decimals: '0x313ce567',
+  owner: '0x8da5cb5b',
+  paused: '0x5c975abb',
+  balanceOf: '0x70a08231'
+};
+
+// Dangerous bytecode patterns
+const DANGER_PATTERNS = [
+  { pattern: 'ff', name: 'SELFDESTRUCT', weight: 25 },
+  { pattern: '3373ffffffffffffffffffffffffffffffffffffffff14', name: 'tx.origin check', weight: 15 },
+];
+
+// Known dangerous function signatures in bytecode
+const DANGER_SIGS = [
+  { sig: '40c10f19', name: 'mint(address,uint256)', weight: 10 },
+  { sig: '42966c68', name: 'burn(uint256)', weight: 3 },
+  { sig: '8456cb59', name: 'pause()', weight: 8 },
+  { sig: '3f4ba83a', name: 'unpause()', weight: 3 },
+  { sig: '44df8e70', name: 'blacklist pattern', weight: 12 },
+  { sig: 'a9059cbb', name: 'transfer(address,uint256)', weight: 0 },
+  { sig: '23b872dd', name: 'transferFrom(address,address,uint256)', weight: 0 },
+  { sig: 'f2fde38b', name: 'transferOwnership(address)', weight: 5 },
+  { sig: '715018a6', name: 'renounceOwnership()', weight: -5 },
+  { sig: '5c975abb', name: 'paused()', weight: 5 },
+];
+
+// EIP-1967 proxy slots
+const PROXY_SLOTS = {
+  implementation: '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',
+  admin: '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103',
+  beacon: '0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50'
+};
+
+async function rpcCall(chain, method, params) {
+  const res = await fetch(RPC[chain], {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
 }
 
-function saveApiUrl() {
-  const url = getApiUrl();
-  if (url) localStorage.setItem(API_STORAGE_KEY, url);
-}
-
-async function checkApiStatus() {
-  const dot = document.getElementById('apiStatus');
-  const url = getApiUrl();
-  if (!url) { dot.className = 'status'; dot.title = 'Enter API URL'; return; }
+function decodeString(hex) {
+  if (!hex || hex === '0x' || hex.length < 130) return null;
   try {
-    const res = await fetch(url + '/chains', { signal: AbortSignal.timeout(5000) });
-    if (res.ok) { dot.className = 'status online'; dot.title = 'API online'; }
-    else { dot.className = 'status offline'; dot.title = 'API returned ' + res.status; }
-  } catch(e) {
-    dot.className = 'status offline';
-    dot.title = 'API unreachable';
-  }
+    const stripped = hex.slice(2);
+    const offset = parseInt(stripped.slice(0, 64), 16) * 2;
+    const len = parseInt(stripped.slice(offset, offset + 64), 16);
+    if (len > 100) return null;
+    const strHex = stripped.slice(offset + 64, offset + 64 + len * 2);
+    return decodeURIComponent(strHex.replace(/../g, '%$&'));
+  } catch { return null; }
 }
 
-function updateCurlExamples() {
-  const url = getApiUrl() || 'https://YOUR-API';
-  document.getElementById('curlBasic').textContent = url + '/scan?address=0xCONTRACT&chain=base';
-  document.getElementById('curlDeep').textContent = url + '/scan?address=0xCONTRACT&chain=base&mode=deep&tx_hash=0xYOUR_TX';
+function decodeUint(hex) {
+  if (!hex || hex === '0x') return null;
+  try { return BigInt(hex); } catch { return null; }
 }
 
-document.getElementById('apiUrl').addEventListener('change', function() {
-  saveApiUrl();
-  checkApiStatus();
-  updateCurlExamples();
-});
-
-// Load saved API URL
-const saved = localStorage.getItem(API_STORAGE_KEY);
-if (saved) document.getElementById('apiUrl').value = saved;
+function decodeAddress(hex) {
+  if (!hex || hex === '0x' || hex === '0x0000000000000000000000000000000000000000000000000000000000000000') return null;
+  return '0x' + hex.slice(-40);
+}
 
 async function doScan() {
-  const apiUrl = getApiUrl();
-  if (!apiUrl) {
-    alert('Enter the API endpoint URL at the top of the page first.');
-    return;
-  }
-  const addr = document.getElementById('address').value.trim();
+  const addr = document.getElementById('address').value.trim().toLowerCase();
   const chain = document.getElementById('chain').value;
-  const mode = document.getElementById('mode').value;
-  const txHash = document.getElementById('txHash').value.trim();
   const btn = document.getElementById('scanBtn');
   const out = document.getElementById('result');
   const header = document.getElementById('resultHeader');
@@ -331,14 +288,7 @@ async function doScan() {
   const jsonEl = document.getElementById('resultJson');
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-    jsonEl.textContent = 'Invalid address format. Must be 0x + 40 hex characters.';
-    header.style.display = 'none';
-    out.className = 'result show';
-    return;
-  }
-
-  if (mode === 'deep' && !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
-    jsonEl.textContent = 'Deep scan requires a valid Base USDC payment tx hash.\n\n1. Send $2 USDC on Base to:\n   0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3\n2. Paste the transaction hash above\n3. Click Scan Contract';
+    jsonEl.textContent = 'Invalid address. Must be 0x followed by 40 hex characters.';
     header.style.display = 'none';
     out.className = 'result show';
     return;
@@ -351,44 +301,141 @@ async function doScan() {
   out.className = 'result show';
 
   try {
-    let url = apiUrl + '/scan?address=' + addr + '&chain=' + chain + '&mode=' + mode;
-    if (mode === 'deep') url += '&tx_hash=' + txHash;
-    const res = await fetch(url);
-    const data = await res.json();
+    const result = await analyzeContract(addr, chain);
 
-    if (data.risk_score !== undefined) {
-      header.style.display = 'flex';
-      addrEl.textContent = addr.slice(0, 6) + '...' + addr.slice(-4) + ' on ' + chain;
-      const score = data.risk_score;
-      if (score >= 60) { badge.className = 'risk-badge risk-high'; badge.textContent = 'High Risk (' + score + ')'; }
-      else if (score >= 30) { badge.className = 'risk-badge risk-medium'; badge.textContent = 'Medium Risk (' + score + ')'; }
-      else { badge.className = 'risk-badge risk-low'; badge.textContent = 'Low Risk (' + score + ')'; }
-    } else {
-      header.style.display = 'none';
-    }
+    header.style.display = 'flex';
+    addrEl.textContent = addr.slice(0, 6) + '...' + addr.slice(-4) + ' on ' + chain;
+    const score = result.risk_score;
+    if (score >= 60) { badge.className = 'risk-badge risk-high'; badge.textContent = 'HIGH RISK (' + score + ')'; }
+    else if (score >= 30) { badge.className = 'risk-badge risk-medium'; badge.textContent = 'MEDIUM (' + score + ')'; }
+    else { badge.className = 'risk-badge risk-low'; badge.textContent = 'LOW RISK (' + score + ')'; }
 
-    jsonEl.textContent = JSON.stringify(data, null, 2);
+    jsonEl.textContent = JSON.stringify(result, null, 2);
   } catch (e) {
     header.style.display = 'none';
-    jsonEl.textContent = 'Error: ' + e.message + '\n\nMake sure the API endpoint URL is correct and the server is running.';
+    jsonEl.textContent = 'Error: ' + e.message + '\n\nThis might be due to RPC rate limiting. Try again in a few seconds.';
   }
 
   btn.disabled = false;
   btn.textContent = 'Scan Contract';
 }
 
-function togglePayment() {
-  document.getElementById('paymentRow').style.display =
-    document.getElementById('mode').value === 'deep' ? 'flex' : 'none';
+async function analyzeContract(address, chain) {
+  // Fetch bytecode
+  const code = await rpcCall(chain, 'eth_getCode', [address, 'latest']);
+
+  if (!code || code === '0x') {
+    return { address, chain, error: 'Not a contract (EOA or empty)', risk_score: 0 };
+  }
+
+  const codeHex = code.slice(2).toLowerCase();
+  const codeSize = codeHex.length / 2;
+
+  // Parallel RPC calls
+  const [implSlot, adminSlot, nameRes, symbolRes, supplyRes, decimalsRes, ownerRes] = await Promise.allSettled([
+    rpcCall(chain, 'eth_getStorageAt', [address, PROXY_SLOTS.implementation, 'latest']),
+    rpcCall(chain, 'eth_getStorageAt', [address, PROXY_SLOTS.admin, 'latest']),
+    rpcCall(chain, 'eth_call', [{ to: address, data: SEL.name }, 'latest']),
+    rpcCall(chain, 'eth_call', [{ to: address, data: SEL.symbol }, 'latest']),
+    rpcCall(chain, 'eth_call', [{ to: address, data: SEL.totalSupply }, 'latest']),
+    rpcCall(chain, 'eth_call', [{ to: address, data: SEL.decimals }, 'latest']),
+    rpcCall(chain, 'eth_call', [{ to: address, data: SEL.owner }, 'latest']),
+  ]);
+
+  // Decode results
+  const implAddr = implSlot.status === 'fulfilled' ? decodeAddress(implSlot.value) : null;
+  const adminAddr = adminSlot.status === 'fulfilled' ? decodeAddress(adminSlot.value) : null;
+  const name = nameRes.status === 'fulfilled' ? decodeString(nameRes.value) : null;
+  const symbol = symbolRes.status === 'fulfilled' ? decodeString(symbolRes.value) : null;
+  const totalSupply = supplyRes.status === 'fulfilled' ? decodeUint(supplyRes.value) : null;
+  const decimals = decimalsRes.status === 'fulfilled' ? decodeUint(decimalsRes.value) : null;
+  const owner = ownerRes.status === 'fulfilled' ? decodeAddress(ownerRes.value) : null;
+
+  const isProxy = !!implAddr;
+
+  // Bytecode analysis
+  let riskScore = 0;
+  const riskFlags = [];
+  const detectedFunctions = [];
+
+  // Check function signatures
+  for (const item of DANGER_SIGS) {
+    if (codeHex.includes(item.sig)) {
+      detectedFunctions.push(item.name);
+      if (item.weight > 0) {
+        riskScore += item.weight;
+        if (item.weight >= 8) riskFlags.push('has_' + item.name.split('(')[0]);
+      } else if (item.weight < 0) {
+        riskScore += item.weight; // negative = reduces risk
+      }
+    }
+  }
+
+  // Check dangerous patterns
+  for (const p of DANGER_PATTERNS) {
+    if (codeHex.includes(p.pattern) && p.name === 'SELFDESTRUCT') {
+      // Only flag SELFDESTRUCT if it's actually the opcode (0xff at a reasonable position)
+      const idx = codeHex.indexOf('ff');
+      if (idx > 10) { // skip if it's just part of an address
+        riskScore += p.weight;
+        riskFlags.push(p.name);
+      }
+    } else if (codeHex.includes(p.pattern)) {
+      riskScore += p.weight;
+      riskFlags.push(p.name);
+    }
+  }
+
+  // Proxy risk
+  if (isProxy) {
+    riskScore += 10;
+    riskFlags.push('upgradeable_proxy');
+  }
+
+  // Owner risk
+  if (owner && owner !== '0x0000000000000000000000000000000000000000') {
+    riskScore += 5;
+    riskFlags.push('has_owner');
+  }
+
+  // Very small code = could be just a proxy/minimal
+  if (codeSize < 100 && !isProxy) {
+    riskScore += 5;
+    riskFlags.push('minimal_bytecode');
+  }
+
+  // Clamp
+  riskScore = Math.max(0, Math.min(100, riskScore));
+
+  // Build result
+  const result = {
+    address,
+    chain,
+    risk_score: riskScore,
+    risk_level: riskScore >= 60 ? 'HIGH' : riskScore >= 30 ? 'MEDIUM' : 'LOW',
+    risk_flags: riskFlags,
+    is_contract: true,
+    bytecode_size: codeSize,
+    is_proxy: isProxy,
+  };
+
+  if (implAddr) result.implementation = implAddr;
+  if (adminAddr) result.proxy_admin = adminAddr;
+  if (owner) result.owner = owner;
+  if (name) result.token_name = name;
+  if (symbol) result.token_symbol = symbol;
+  if (totalSupply !== null && decimals !== null) {
+    result.total_supply = (Number(totalSupply) / Math.pow(10, Number(decimals))).toLocaleString();
+  }
+  if (decimals !== null) result.decimals = Number(decimals);
+  result.detected_functions = detectedFunctions;
+
+  return result;
 }
 
 document.getElementById('address').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doScan();
 });
-
-togglePayment();
-checkApiStatus();
-updateCurlExamples();
 </script>
 </body>
 </html>
