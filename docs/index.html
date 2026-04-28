@@ -205,15 +205,17 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
       </div>
       <div class="tier-box highlight">
         <h3>Deep Scan</h3>
-        <div class="price">$2 <small>USDC per scan</small></div>
+        <div class="price">Free <small style="color:#888;text-decoration:line-through">was $2</small></div>
         <ul>
           <li>Everything in Basic</li>
           <li>Full source code analysis</li>
+          <li>11 vulnerability pattern checks</li>
           <li>Reentrancy detection</li>
           <li>Hidden owner functions</li>
-          <li>Access control review</li>
-          <li>11 vulnerability patterns</li>
+          <li>Safety feature detection</li>
+          <li>Compiler info &amp; LOC count</li>
         </ul>
+        <p style="color:#888;font-size:0.75rem;margin-top:0.5rem">Requires Sourcify-verified source code</p>
       </div>
     </div>
   </div>
@@ -245,14 +247,14 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
     <div class="code-block"><span class="comment"># Free basic scan</span>
 curl <span class="string">https://your-instance.onrender.com/scan?address=0xCONTRACT&chain=base</span>
 
-<span class="comment"># Deep scan ($2 USDC on Base)</span>
-curl <span class="string">https://your-instance.onrender.com/scan?address=0xCONTRACT&chain=base&mode=deep&tx_hash=0xPAYMENT_TX</span></div>
+<span class="comment"># Deep scan (source code analysis)</span>
+curl <span class="string">https://your-instance.onrender.com/scan?address=0xCONTRACT&chain=base&mode=deep</span></div>
   </div>
 
   <div class="payment-info">
-    <div class="label">Deep scan payment address (Base network, USDC)</div>
-    <code>0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3</code>
-    <div class="network">Base mainnet &middot; USDC only &middot; $2 per scan</div>
+    <div class="label">Support ContractScan — Send a tip</div>
+    <code style="cursor:pointer" onclick="navigator.clipboard.writeText('0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3').then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3'},1500)})">0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3</code>
+    <div class="network">Base / Ethereum / Any EVM chain &middot; ETH, USDC, or any token &middot; Click to copy</div>
   </div>
 
   <div class="github-cta">
@@ -389,6 +391,76 @@ function decodeUint(hex) {
 function decodeAddress(hex) {
   if (!hex || hex === '0x' || hex === '0x' + '0'.repeat(64)) return null;
   return '0x' + hex.slice(-40);
+}
+
+// Source code vulnerability patterns (from scanner_core.py)
+const SOURCE_PATTERNS = [
+  { name: 'Hidden fee manipulation', severity: 'CRITICAL', regex: /(setFee|setTax|_fee|_tax)\s*\([^)]*\)\s*(external|public)/gi, desc: 'Function allows dynamic fee changes — fees can be set to 99%+ after launch' },
+  { name: 'Transfer restriction (honeypot)', severity: 'CRITICAL', regex: /require\s*\(\s*(msg\.sender\s*==\s*owner|_?isExcluded|_?allowed)\s*[^)]*\)\s*;?\s*\/\/.*(transfer|sell)/gi, desc: 'Transfer restricted to specific addresses — potential honeypot' },
+  { name: 'Unlimited mint authority', severity: 'CRITICAL', regex: /function\s+mint\s*\([^)]*\)\s*(external|public)\s*(onlyOwner)?/gi, desc: 'Owner can mint unlimited tokens, diluting all holders' },
+  { name: 'Selfdestruct in source', severity: 'CRITICAL', regex: /selfdestruct\s*\(/gi, desc: 'Contract can be permanently destroyed, wiping all balances' },
+  { name: 'Blacklist mechanism', severity: 'HIGH', regex: /(isBlacklisted|_blacklist|blacklisted)\s*\[/gi, desc: 'Owner can prevent specific addresses from transacting' },
+  { name: 'Max transaction limit', severity: 'MEDIUM', regex: /(maxTxAmount|_maxTx|maxTransactionAmount)/gi, desc: 'Max transaction limit — can be set to prevent selling' },
+  { name: 'Cooldown/anti-bot', severity: 'MEDIUM', regex: /(cooldown|_cooldown|lastTrade|tradeCooldown)/gi, desc: 'Cooldown timer between trades — may prevent rapid selling' },
+  { name: 'Hidden owner functions', severity: 'HIGH', regex: /function\s+\w+\s*\([^)]*\)\s*(external|public)\s+onlyOwner[^{]*\{[^}]*(balanceOf|_balances|transfer)/gi, desc: 'Owner-only function manipulates balances or transfers directly' },
+  { name: 'Proxy upgrade function', severity: 'HIGH', regex: /function\s+(upgradeTo|upgradeToAndCall)\s*\(/gi, desc: 'Contract is upgradeable — logic can be changed after deployment' },
+  { name: 'Reentrancy risk', severity: 'HIGH', regex: /\.call\{value:/gi, desc: 'External call with value — potential reentrancy' },
+  { name: 'Unchecked external call', severity: 'MEDIUM', regex: /\.call\{[^}]*\}\([^)]*\)\s*;/gi, desc: 'External call return value may not be checked' },
+];
+
+const SAFE_PATTERNS = {
+  ReentrancyGuard: /ReentrancyGuard|nonReentrant/i,
+  OpenZeppelin: /@openzeppelin/i,
+  SafeMath: /SafeMath|using SafeMath/i,
+  AccessControl: /AccessControl|onlyRole/i,
+  Timelock: /[Tt]imelock|TimelockController/i,
+};
+
+async function fetchSourcifySource(address, chain) {
+  const chainId = CHAIN_IDS[chain];
+  if (!chainId) return null;
+  for (const matchType of ['full_match', 'partial_match']) {
+    try {
+      const metaUrl = `https://repo.sourcify.dev/contracts/${matchType}/${chainId}/${address}/metadata.json`;
+      const res = await fetch(metaUrl, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const metadata = await res.json();
+      const sources = metadata.sources || {};
+      const allSource = [];
+      let contractName = '';
+      const compTarget = metadata?.settings?.compilationTarget || {};
+      if (Object.keys(compTarget).length > 0) contractName = Object.values(compTarget)[0];
+      const compiler = metadata?.compiler?.version || '';
+      for (const [filepath, sourceInfo] of Object.entries(sources)) {
+        if (sourceInfo.content) { allSource.push(sourceInfo.content); continue; }
+        try {
+          const srcUrl = `https://repo.sourcify.dev/contracts/${matchType}/${chainId}/${address}/sources/${filepath}`;
+          const srcRes = await fetch(srcUrl, { signal: AbortSignal.timeout(5000) });
+          if (srcRes.ok) allSource.push(await srcRes.text());
+        } catch {}
+      }
+      if (allSource.length > 0) {
+        return { source: allSource.join('\n\n'), contractName, compiler, matchType };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function analyzeSourceCode(sourceCode) {
+  const findings = [];
+  for (const pat of SOURCE_PATTERNS) {
+    const matches = sourceCode.match(pat.regex);
+    if (matches && matches.length > 0) {
+      findings.push({ name: pat.name, severity: pat.severity, desc: pat.desc, count: matches.length });
+    }
+  }
+  const safetyFeatures = [];
+  for (const [name, regex] of Object.entries(SAFE_PATTERNS)) {
+    if (regex.test(sourceCode)) safetyFeatures.push(name);
+  }
+  const lines = sourceCode.split('\n').filter(l => l.trim() && !l.trim().startsWith('//')).length;
+  return { findings, safetyFeatures, linesOfCode: lines };
 }
 
 async function checkSourcify(address, chain) {
@@ -546,11 +618,69 @@ function renderResult(r, out) {
       <button class="btn-copy btn-twitter" onclick="tweetResult()">Share on X</button>
       <button class="btn-copy" onclick="copyJSON()">Copy JSON</button>
     </div>
+    ${r.sourcify_verified ? `<div style="margin-top:0.75rem"><button id="deepScanBtn" onclick="doDeepScan('${r.address}','${r.chain}')" style="background:#6c3aed;width:100%;font-size:1rem">Deep Scan — Analyze Source Code (Free)</button></div>` : ''}
+    <div id="deepResult"></div>
   `;
   out.className = 'result show';
 
   // Store JSON for copy
   out._resultJSON = JSON.stringify(r, null, 2);
+}
+
+async function doDeepScan(address, chain) {
+  const btn = document.getElementById('deepScanBtn');
+  const deepOut = document.getElementById('deepResult');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Fetching & analyzing source code...';
+  deepOut.innerHTML = '';
+  try {
+    const sourceInfo = await fetchSourcifySource(address, chain);
+    if (!sourceInfo) {
+      deepOut.innerHTML = '<div class="result-card" style="margin-top:0.75rem"><p style="color:#ff6666">Could not fetch source code from Sourcify.</p></div>';
+      btn.disabled = false;
+      btn.textContent = 'Deep Scan — Analyze Source Code (Free)';
+      return;
+    }
+    const analysis = analyzeSourceCode(sourceInfo.source);
+    let html = '<div class="result-card" style="margin-top:0.75rem;border-color:#6c3aed">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #222">';
+    html += '<span style="color:#6c3aed;font-weight:bold;font-size:0.9rem">DEEP SCAN — SOURCE CODE ANALYSIS</span>';
+    html += `<span style="color:#888;font-size:0.75rem">${analysis.linesOfCode.toLocaleString()} lines</span>`;
+    html += '</div>';
+    html += '<div class="result-grid">';
+    html += `<div class="result-item"><div class="label">Contract</div><div class="value blue">${escapeHtml(sourceInfo.contractName || 'Unknown')}</div></div>`;
+    html += `<div class="result-item"><div class="label">Compiler</div><div class="value">${escapeHtml(sourceInfo.compiler || 'Unknown')}</div></div>`;
+    if (analysis.safetyFeatures.length > 0) {
+      html += '<div class="result-item full"><div class="label">Safety Features</div><div class="risk-flags">' +
+        analysis.safetyFeatures.map(f => `<span class="flag flag-safe">${escapeHtml(f)}</span>`).join('') + '</div></div>';
+    }
+    if (analysis.findings.length > 0) {
+      html += '<div class="result-item full"><div class="label">Vulnerability Findings</div><div style="margin-top:0.3rem">';
+      for (const f of analysis.findings) {
+        const sevColor = f.severity === 'CRITICAL' ? '#ff4444' : f.severity === 'HIGH' ? '#ffaa00' : '#88aaff';
+        html += `<div style="margin-bottom:0.5rem;padding:0.5rem;background:#0a0a0f;border-radius:6px;border-left:3px solid ${sevColor}">`;
+        html += `<div style="display:flex;justify-content:space-between"><span style="color:${sevColor};font-weight:bold;font-size:0.8rem">[${f.severity}] ${escapeHtml(f.name)}</span><span style="color:#555;font-size:0.7rem">${f.count} match${f.count>1?'es':''}</span></div>`;
+        html += `<div style="color:#888;font-size:0.75rem;margin-top:0.2rem">${escapeHtml(f.desc)}</div>`;
+        html += '</div>';
+      }
+      html += '</div></div>';
+    } else {
+      html += '<div class="result-item full"><div class="label">Vulnerability Findings</div><div class="value green">No known vulnerability patterns detected in source code</div></div>';
+    }
+    html += '</div></div>';
+    // Tip CTA
+    html += `<div style="margin-top:0.75rem;padding:1rem;background:#111118;border:1px solid #222;border-radius:10px;text-align:center">
+      <p style="color:#aaa;font-size:0.85rem;margin-bottom:0.5rem">Found this useful? Support ContractScan development</p>
+      <code style="color:#00ff88;font-size:0.8rem;word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText('0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3').then(()=>{this.style.color='#fff';this.textContent='Copied!';setTimeout(()=>{this.style.color='#00ff88';this.textContent='0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3'},1500)})">0x8C0083EE1a611c917E3652a14f9Ab5c3a23948D3</code>
+      <p style="color:#555;font-size:0.7rem;margin-top:0.3rem">Base / Ethereum / Any EVM chain — ETH, USDC, or any token</p>
+    </div>`;
+    deepOut.innerHTML = html;
+    btn.style.display = 'none';
+  } catch (e) {
+    deepOut.innerHTML = `<div class="result-card" style="margin-top:0.75rem"><p style="color:#ff6666">Deep scan error: ${escapeHtml(e.message)}</p></div>`;
+    btn.disabled = false;
+    btn.textContent = 'Deep Scan — Analyze Source Code (Free)';
+  }
 }
 
 async function analyzeContract(address, chain) {
