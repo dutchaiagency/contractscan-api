@@ -7,10 +7,12 @@
 <meta name="description" content="Scan any smart contract for security risks in seconds. Detect proxies, honeypots, hidden mints, and rug pull patterns. Multi-chain. Works in your browser — no signup, no API key.">
 <meta property="og:title" content="ContractScan — Free Smart Contract Security Scanner">
 <meta property="og:description" content="Check any contract for rug pulls, honeypots, and hidden risks before you ape in. 6 chains supported. Free. Works instantly in your browser.">
+<meta property="og:url" content="https://dutchaiagency.github.io/contractscan-api/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ContractScan — Free Contract Scanner">
 <meta name="twitter:description" content="Smart contract security scanner. Free basic scan. Works in your browser. 6 chains.">
+<link rel="canonical" href="https://dutchaiagency.github.io/contractscan-api/">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
@@ -19,7 +21,9 @@ header { text-align: center; margin-bottom: 2.5rem; }
 h1 { font-size: 2.4rem; color: #00ff88; margin-bottom: 0.3rem; letter-spacing: -0.5px; }
 .tagline { color: #aaa; font-size: 1.1rem; margin-bottom: 0.5rem; }
 .tagline strong { color: #fff; }
-.badge { display: inline-block; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: #00ff88; padding: 0.2rem 0.7rem; border-radius: 20px; font-size: 0.75rem; margin-top: 0.5rem; }
+.badges { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem; }
+.badge { display: inline-block; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: #00ff88; padding: 0.2rem 0.7rem; border-radius: 20px; font-size: 0.75rem; }
+.badge-count { background: rgba(136,170,255,0.1); border-color: rgba(136,170,255,0.3); color: #88aaff; }
 
 .scan-box { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
 .scan-box label { display: block; color: #888; font-size: 0.8rem; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -29,21 +33,66 @@ input[type="text"]::placeholder { color: #444; }
 input[type="text"]:focus { outline: none; border-color: #00ff88; box-shadow: 0 0 0 2px rgba(0,255,136,0.1); }
 select { background: #0a0a0f; border: 1px solid #333; border-radius: 6px; padding: 0.75rem; color: #fff; font-family: monospace; }
 select:focus { outline: none; border-color: #00ff88; }
+.btn-row { display: flex; gap: 0.5rem; }
 button { background: #00ff88; color: #000; border: none; border-radius: 6px; padding: 0.75rem 2rem; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.15s; }
 button:hover { background: #00cc6a; }
 button:disabled { background: #333; color: #666; cursor: not-allowed; }
+.btn-secondary { background: #222; color: #aaa; padding: 0.75rem 1rem; font-size: 0.85rem; }
+.btn-secondary:hover { background: #333; color: #fff; }
 .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #666; border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.result { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin-top: 1rem; font-family: monospace; font-size: 0.85rem; line-height: 1.6; display: none; overflow-x: auto; }
+/* Result display */
+.result { display: none; margin-top: 1rem; }
 .result.show { display: block; }
-.result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #222; }
+.result-card { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; margin-bottom: 0.75rem; }
+.result-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #222; }
+.result-addr { color: #888; font-size: 0.8rem; font-family: monospace; }
+.result-addr a { color: #88aaff; text-decoration: none; }
+.result-addr a:hover { text-decoration: underline; }
 .risk-badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; }
 .risk-high { background: rgba(255,68,68,0.15); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
 .risk-medium { background: rgba(255,170,0,0.15); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
 .risk-low { background: rgba(0,255,136,0.15); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
-.result-addr { color: #888; font-size: 0.8rem; }
-#resultJson { white-space: pre-wrap; word-break: break-all; }
+
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.result-item { background: #0a0a0f; border: 1px solid #1a1a22; border-radius: 8px; padding: 0.8rem; }
+.result-item .label { color: #666; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; }
+.result-item .value { color: #fff; font-size: 0.9rem; word-break: break-all; font-family: monospace; }
+.result-item .value.green { color: #00ff88; }
+.result-item .value.red { color: #ff4444; }
+.result-item .value.yellow { color: #ffaa00; }
+.result-item .value.blue { color: #88aaff; }
+.result-item.full { grid-column: 1 / -1; }
+
+.risk-flags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; }
+.flag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-family: monospace; }
+.flag-danger { background: rgba(255,68,68,0.1); color: #ff6666; border: 1px solid rgba(255,68,68,0.2); }
+.flag-warn { background: rgba(255,170,0,0.1); color: #ffaa00; border: 1px solid rgba(255,170,0,0.2); }
+.flag-safe { background: rgba(0,255,136,0.1); color: #00ff88; border: 1px solid rgba(0,255,136,0.2); }
+.flag-info { background: rgba(136,170,255,0.1); color: #88aaff; border: 1px solid rgba(136,170,255,0.2); }
+
+.functions-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.func-tag { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.7rem; font-family: monospace; background: #1a1a22; color: #aaa; border: 1px solid #222; }
+
+.share-bar { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+.share-bar button { padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px; }
+.share-bar .btn-copy { background: #222; color: #aaa; }
+.share-bar .btn-copy:hover { background: #333; color: #fff; }
+.copied { background: #00ff88 !important; color: #000 !important; }
+
+/* Error display */
+.error-msg { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.5rem; color: #ff6666; font-family: monospace; font-size: 0.85rem; }
+
+/* History */
+.history { margin-top: 1.5rem; }
+.history h3 { color: #666; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+.history-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.history-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; background: #111118; border: 1px solid #1a1a22; border-radius: 6px; cursor: pointer; transition: border-color 0.15s; font-size: 0.8rem; }
+.history-item:hover { border-color: #00ff88; }
+.history-item .h-chain { color: #666; min-width: 60px; }
+.history-item .h-addr { color: #88aaff; font-family: monospace; flex: 1; }
+.history-item .h-risk { font-size: 0.7rem; font-weight: bold; }
 
 .section { margin-top: 2.5rem; }
 .section h2 { color: #fff; font-size: 1.3rem; margin-bottom: 1rem; }
@@ -65,7 +114,6 @@ button:disabled { background: #333; color: #666; cursor: not-allowed; }
 .code-block { background: #0a0a0f; border: 1px solid #222; border-radius: 8px; padding: 1rem; margin: 0.75rem 0; font-family: monospace; font-size: 0.8rem; line-height: 1.6; overflow-x: auto; white-space: pre; }
 .comment { color: #555; }
 .string { color: #00ff88; }
-.key { color: #88aaff; }
 
 .payment-info { background: #111118; border: 1px solid #222; border-radius: 10px; padding: 1.2rem; margin-top: 1.5rem; text-align: center; }
 .payment-info .label { color: #888; font-size: 0.8rem; margin-bottom: 0.3rem; }
@@ -82,6 +130,7 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
 @media (max-width: 600px) {
   .tier-grid, .use-case-grid { grid-template-columns: 1fr; }
   .input-row { flex-direction: column; }
+  .result-grid { grid-template-columns: 1fr; }
   h1 { font-size: 1.8rem; }
 }
 </style>
@@ -91,7 +140,12 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
   <header>
     <h1>ContractScan</h1>
     <p class="tagline">Scan any smart contract for <strong>security risks</strong> in seconds</p>
-    <div class="badge">100% Client-Side &mdash; No Backend Required &mdash; Free</div>
+    <div class="badges">
+      <span class="badge">100% Client-Side</span>
+      <span class="badge">No Backend Required</span>
+      <span class="badge">Free</span>
+      <span class="badge badge-count" id="scanCounter">0 scans performed</span>
+    </div>
   </header>
 
   <div class="scan-box">
@@ -107,15 +161,17 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
         <option value="optimism">Optimism</option>
       </select>
     </div>
-    <button id="scanBtn" onclick="doScan()">Scan Contract</button>
+    <div class="btn-row">
+      <button id="scanBtn" onclick="doScan()">Scan Contract</button>
+      <button class="btn-secondary" onclick="loadExample()">Try Example</button>
+    </div>
   </div>
 
-  <div class="result" id="result">
-    <div class="result-header" id="resultHeader" style="display:none">
-      <span class="result-addr" id="resultAddr"></span>
-      <span class="risk-badge" id="riskBadge"></span>
-    </div>
-    <pre id="resultJson"></pre>
+  <div class="result" id="result"></div>
+
+  <div class="history" id="historySection" style="display:none">
+    <h3>Recent Scans</h3>
+    <div class="history-list" id="historyList"></div>
   </div>
 
   <div class="section">
@@ -125,11 +181,12 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
         <h3>Basic Scan</h3>
         <div class="price">Free</div>
         <ul>
-          <li>Contract verification</li>
+          <li>Contract verification (Sourcify)</li>
           <li>Proxy detection (EIP-1967)</li>
           <li>Owner / admin analysis</li>
           <li>Token metadata (ERC20)</li>
           <li>Bytecode risk patterns</li>
+          <li>Honeypot indicators</li>
           <li>Risk score (0-100)</li>
         </ul>
       </div>
@@ -138,10 +195,10 @@ footer { text-align: center; color: #333; font-size: 0.75rem; margin-top: 3rem; 
         <div class="price">$2 <small>USDC per scan</small></div>
         <ul>
           <li>Everything in Basic</li>
-          <li>Verified source code analysis</li>
+          <li>Full source code analysis</li>
           <li>Reentrancy detection</li>
           <li>Hidden owner functions</li>
-          <li>Honeypot pattern matching</li>
+          <li>Access control review</li>
           <li>11 vulnerability patterns</li>
         </ul>
       </div>
@@ -196,7 +253,6 @@ curl <span class="string">https://your-instance.onrender.com/scan?address=0xCONT
 </div>
 
 <script>
-// RPC endpoints (public, free)
 const RPC = {
   ethereum: 'https://eth.drpc.org',
   base: 'https://mainnet.base.org',
@@ -206,38 +262,47 @@ const RPC = {
   optimism: 'https://mainnet.optimism.io'
 };
 
-// ERC20 function selectors
-const SEL = {
-  name: '0x06fdde03',
-  symbol: '0x95d89b41',
-  totalSupply: '0x18160ddd',
-  decimals: '0x313ce567',
-  owner: '0x8da5cb5b',
-  paused: '0x5c975abb',
-  balanceOf: '0x70a08231'
+const CHAIN_IDS = {
+  ethereum: '1', base: '8453', arbitrum: '42161',
+  polygon: '137', bsc: '56', optimism: '10'
 };
 
-// Dangerous bytecode patterns
-const DANGER_PATTERNS = [
-  { pattern: 'ff', name: 'SELFDESTRUCT', weight: 25 },
-  { pattern: '3373ffffffffffffffffffffffffffffffffffffffff14', name: 'tx.origin check', weight: 15 },
-];
+const EXPLORERS = {
+  ethereum: 'https://etherscan.io', base: 'https://basescan.org',
+  arbitrum: 'https://arbiscan.io', polygon: 'https://polygonscan.com',
+  bsc: 'https://bscscan.com', optimism: 'https://optimistic.etherscan.io'
+};
 
-// Known dangerous function signatures in bytecode
+const SEL = {
+  name: '0x06fdde03', symbol: '0x95d89b41', totalSupply: '0x18160ddd',
+  decimals: '0x313ce567', owner: '0x8da5cb5b', paused: '0x5c975abb'
+};
+
 const DANGER_SIGS = [
-  { sig: '40c10f19', name: 'mint(address,uint256)', weight: 10 },
-  { sig: '42966c68', name: 'burn(uint256)', weight: 3 },
-  { sig: '8456cb59', name: 'pause()', weight: 8 },
-  { sig: '3f4ba83a', name: 'unpause()', weight: 3 },
-  { sig: '44df8e70', name: 'blacklist pattern', weight: 12 },
-  { sig: 'a9059cbb', name: 'transfer(address,uint256)', weight: 0 },
-  { sig: '23b872dd', name: 'transferFrom(address,address,uint256)', weight: 0 },
-  { sig: 'f2fde38b', name: 'transferOwnership(address)', weight: 5 },
-  { sig: '715018a6', name: 'renounceOwnership()', weight: -5 },
-  { sig: '5c975abb', name: 'paused()', weight: 5 },
+  { sig: '40c10f19', name: 'mint(address,uint256)', weight: 10, cat: 'danger' },
+  { sig: '42966c68', name: 'burn(uint256)', weight: 3, cat: 'warn' },
+  { sig: '8456cb59', name: 'pause()', weight: 8, cat: 'danger' },
+  { sig: '3f4ba83a', name: 'unpause()', weight: 3, cat: 'warn' },
+  { sig: '44df8e70', name: 'blacklist', weight: 12, cat: 'danger' },
+  { sig: 'a9059cbb', name: 'transfer', weight: 0, cat: 'info' },
+  { sig: '23b872dd', name: 'transferFrom', weight: 0, cat: 'info' },
+  { sig: 'f2fde38b', name: 'transferOwnership', weight: 5, cat: 'warn' },
+  { sig: '715018a6', name: 'renounceOwnership', weight: -5, cat: 'safe' },
+  { sig: '5c975abb', name: 'paused()', weight: 5, cat: 'warn' },
+  { sig: 'e4748b9e', name: 'enableTrading', weight: 8, cat: 'danger' },
+  { sig: '49bd5a5e', name: 'uniswapPair', weight: 0, cat: 'info' },
+  { sig: 'c9567bf9', name: 'openTrading', weight: 8, cat: 'danger' },
+  { sig: '8da5cb5b', name: 'owner()', weight: 0, cat: 'info' },
+  { sig: 'dd62ed3e', name: 'allowance', weight: 0, cat: 'info' },
+  { sig: '095ea7b3', name: 'approve', weight: 0, cat: 'info' },
+  { sig: '70a08231', name: 'balanceOf', weight: 0, cat: 'info' },
+  { sig: 'a457c2d7', name: 'decreaseAllowance', weight: 0, cat: 'info' },
+  { sig: '39509351', name: 'increaseAllowance', weight: 0, cat: 'info' },
+  { sig: '1694505e', name: 'setMaxTxAmount', weight: 10, cat: 'danger' },
+  { sig: '8ee88c53', name: 'setMaxWallet', weight: 8, cat: 'danger' },
+  { sig: 'c0246668', name: 'excludeFromFee', weight: 6, cat: 'warn' },
 ];
 
-// EIP-1967 proxy slots
 const PROXY_SLOTS = {
   implementation: '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',
   admin: '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103',
@@ -258,12 +323,11 @@ async function rpcCall(chain, method, params) {
 function decodeString(hex) {
   if (!hex || hex === '0x' || hex.length < 130) return null;
   try {
-    const stripped = hex.slice(2);
-    const offset = parseInt(stripped.slice(0, 64), 16) * 2;
-    const len = parseInt(stripped.slice(offset, offset + 64), 16);
+    const s = hex.slice(2);
+    const off = parseInt(s.slice(0, 64), 16) * 2;
+    const len = parseInt(s.slice(off, off + 64), 16);
     if (len > 100) return null;
-    const strHex = stripped.slice(offset + 64, offset + 64 + len * 2);
-    return decodeURIComponent(strHex.replace(/../g, '%$&'));
+    return decodeURIComponent(s.slice(off + 64, off + 64 + len * 2).replace(/../g, '%$&'));
   } catch { return null; }
 }
 
@@ -273,8 +337,22 @@ function decodeUint(hex) {
 }
 
 function decodeAddress(hex) {
-  if (!hex || hex === '0x' || hex === '0x0000000000000000000000000000000000000000000000000000000000000000') return null;
+  if (!hex || hex === '0x' || hex === '0x' + '0'.repeat(64)) return null;
   return '0x' + hex.slice(-40);
+}
+
+async function checkSourcify(address, chain) {
+  const chainId = CHAIN_IDS[chain];
+  if (!chainId) return null;
+  try {
+    const res = await fetch(`https://repo.sourcify.dev/contracts/full_match/${chainId}/${address}/metadata.json`, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) return 'full';
+  } catch {}
+  try {
+    const res = await fetch(`https://repo.sourcify.dev/contracts/partial_match/${chainId}/${address}/metadata.json`, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) return 'partial';
+  } catch {}
+  return null;
 }
 
 async function doScan() {
@@ -282,47 +360,136 @@ async function doScan() {
   const chain = document.getElementById('chain').value;
   const btn = document.getElementById('scanBtn');
   const out = document.getElementById('result');
-  const header = document.getElementById('resultHeader');
-  const badge = document.getElementById('riskBadge');
-  const addrEl = document.getElementById('resultAddr');
-  const jsonEl = document.getElementById('resultJson');
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-    jsonEl.textContent = 'Invalid address. Must be 0x followed by 40 hex characters.';
-    header.style.display = 'none';
+    out.innerHTML = '<div class="error-msg">Invalid address. Must be 0x followed by 40 hex characters.</div>';
     out.className = 'result show';
     return;
   }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Scanning...';
-  jsonEl.textContent = 'Analyzing contract on ' + chain + '...';
-  header.style.display = 'none';
+  out.innerHTML = '<div class="result-card"><p style="color:#888">Analyzing contract on ' + chain + '...</p></div>';
   out.className = 'result show';
 
   try {
     const result = await analyzeContract(addr, chain);
-
-    header.style.display = 'flex';
-    addrEl.textContent = addr.slice(0, 6) + '...' + addr.slice(-4) + ' on ' + chain;
-    const score = result.risk_score;
-    if (score >= 60) { badge.className = 'risk-badge risk-high'; badge.textContent = 'HIGH RISK (' + score + ')'; }
-    else if (score >= 30) { badge.className = 'risk-badge risk-medium'; badge.textContent = 'MEDIUM (' + score + ')'; }
-    else { badge.className = 'risk-badge risk-low'; badge.textContent = 'LOW RISK (' + score + ')'; }
-
-    jsonEl.textContent = JSON.stringify(result, null, 2);
+    renderResult(result, out);
+    saveToHistory(result);
+    updateURL(addr, chain);
+    incrementCounter();
   } catch (e) {
-    header.style.display = 'none';
-    jsonEl.textContent = 'Error: ' + e.message + '\n\nThis might be due to RPC rate limiting. Try again in a few seconds.';
+    out.innerHTML = '<div class="error-msg">Error: ' + escapeHtml(e.message) + '<br><br>This might be due to RPC rate limiting. Try again in a few seconds.</div>';
   }
 
   btn.disabled = false;
   btn.textContent = 'Scan Contract';
 }
 
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderResult(r, out) {
+  const explorer = EXPLORERS[r.chain] || '';
+  const addrLink = explorer ? `<a href="${explorer}/address/${r.address}" target="_blank" rel="noopener">${r.address.slice(0,6)}...${r.address.slice(-4)}</a>` : `${r.address.slice(0,6)}...${r.address.slice(-4)}`;
+
+  if (r.error) {
+    out.innerHTML = `<div class="result-card"><div class="result-top"><span class="result-addr">${addrLink} on ${r.chain}</span></div><p style="color:#888">${escapeHtml(r.error)}</p></div>`;
+    out.className = 'result show';
+    return;
+  }
+
+  const riskClass = r.risk_score >= 60 ? 'risk-high' : r.risk_score >= 30 ? 'risk-medium' : 'risk-low';
+  const riskLabel = r.risk_score >= 60 ? 'HIGH RISK' : r.risk_score >= 30 ? 'MEDIUM' : 'LOW RISK';
+
+  let flagsHtml = '';
+  if (r.risk_flags && r.risk_flags.length > 0) {
+    flagsHtml = '<div class="risk-flags">' + r.risk_flags.map(f => {
+      const cls = f.includes('SELFDESTRUCT') || f.includes('blacklist') || f.includes('enableTrading') || f.includes('setMax') ? 'flag-danger' :
+                  f.includes('proxy') || f.includes('owner') || f.includes('pause') ? 'flag-warn' :
+                  f.includes('renounce') || f.includes('verified') ? 'flag-safe' : 'flag-info';
+      return `<span class="flag ${cls}">${escapeHtml(f)}</span>`;
+    }).join('') + '</div>';
+  }
+
+  let funcsHtml = '';
+  if (r.detected_functions && r.detected_functions.length > 0) {
+    funcsHtml = '<div class="functions-list">' + r.detected_functions.map(f =>
+      `<span class="func-tag">${escapeHtml(f)}</span>`
+    ).join('') + '</div>';
+  }
+
+  let tokenHtml = '';
+  if (r.token_name || r.token_symbol) {
+    tokenHtml = `
+      <div class="result-item"><div class="label">Token</div><div class="value blue">${escapeHtml(r.token_name || '?')} (${escapeHtml(r.token_symbol || '?')})</div></div>
+      ${r.total_supply ? `<div class="result-item"><div class="label">Total Supply</div><div class="value">${escapeHtml(r.total_supply)}</div></div>` : ''}
+    `;
+  }
+
+  let proxyHtml = '';
+  if (r.is_proxy) {
+    const implLink = explorer ? `<a href="${explorer}/address/${r.implementation}" target="_blank" rel="noopener" style="color:#88aaff">${r.implementation.slice(0,10)}...</a>` : r.implementation;
+    proxyHtml = `<div class="result-item full"><div class="label">Proxy Implementation</div><div class="value blue">${implLink}</div></div>`;
+  }
+
+  let verifiedHtml = '';
+  if (r.sourcify_verified) {
+    const vClass = r.sourcify_verified === 'full' ? 'green' : 'yellow';
+    const vText = r.sourcify_verified === 'full' ? 'Verified (full match)' : 'Verified (partial match)';
+    verifiedHtml = `<div class="result-item"><div class="label">Source Code</div><div class="value ${vClass}">${vText}</div></div>`;
+  } else if (r.sourcify_verified === null) {
+    verifiedHtml = `<div class="result-item"><div class="label">Source Code</div><div class="value yellow">Not verified on Sourcify</div></div>`;
+  }
+
+  let ownerHtml = '';
+  if (r.owner) {
+    const zeroAddr = '0x0000000000000000000000000000000000000000';
+    const isRenounced = r.owner === zeroAddr;
+    const ownerLink = explorer ? `<a href="${explorer}/address/${r.owner}" target="_blank" rel="noopener" style="color:${isRenounced ? '#00ff88' : '#ffaa00'}">${isRenounced ? 'Renounced' : r.owner.slice(0,10) + '...'}</a>` : (isRenounced ? 'Renounced' : r.owner.slice(0,10) + '...');
+    ownerHtml = `<div class="result-item"><div class="label">Owner</div><div class="value ${isRenounced ? 'green' : 'yellow'}">${ownerLink}</div></div>`;
+  }
+
+  out.innerHTML = `
+    <div class="result-card">
+      <div class="result-top">
+        <span class="result-addr">${addrLink} on ${r.chain}</span>
+        <span class="risk-badge ${riskClass}">${riskLabel} (${r.risk_score})</span>
+      </div>
+      <div class="result-grid">
+        ${tokenHtml}
+        <div class="result-item">
+          <div class="label">Contract Size</div>
+          <div class="value">${r.bytecode_size.toLocaleString()} bytes</div>
+        </div>
+        <div class="result-item">
+          <div class="label">Proxy</div>
+          <div class="value ${r.is_proxy ? 'yellow' : 'green'}">${r.is_proxy ? 'Yes (Upgradeable)' : 'No'}</div>
+        </div>
+        ${proxyHtml}
+        ${ownerHtml}
+        ${verifiedHtml}
+        ${r.risk_flags && r.risk_flags.length > 0 ? `<div class="result-item full"><div class="label">Risk Flags</div>${flagsHtml}</div>` : ''}
+        ${r.detected_functions && r.detected_functions.length > 0 ? `<div class="result-item full"><div class="label">Detected Functions</div>${funcsHtml}</div>` : ''}
+      </div>
+    </div>
+    <div class="share-bar">
+      <button class="btn-copy" onclick="copyShareLink()">Copy Share Link</button>
+      <button class="btn-copy" onclick="copyJSON()">Copy JSON</button>
+    </div>
+  `;
+  out.className = 'result show';
+
+  // Store JSON for copy
+  out._resultJSON = JSON.stringify(r, null, 2);
+}
+
 async function analyzeContract(address, chain) {
-  // Fetch bytecode
-  const code = await rpcCall(chain, 'eth_getCode', [address, 'latest']);
+  const [code, sourcifyResult] = await Promise.all([
+    rpcCall(chain, 'eth_getCode', [address, 'latest']),
+    checkSourcify(address, chain)
+  ]);
 
   if (!code || code === '0x') {
     return { address, chain, error: 'Not a contract (EOA or empty)', risk_score: 0 };
@@ -331,7 +498,6 @@ async function analyzeContract(address, chain) {
   const codeHex = code.slice(2).toLowerCase();
   const codeSize = codeHex.length / 2;
 
-  // Parallel RPC calls
   const [implSlot, adminSlot, nameRes, symbolRes, supplyRes, decimalsRes, ownerRes] = await Promise.allSettled([
     rpcCall(chain, 'eth_getStorageAt', [address, PROXY_SLOTS.implementation, 'latest']),
     rpcCall(chain, 'eth_getStorageAt', [address, PROXY_SLOTS.admin, 'latest']),
@@ -342,7 +508,6 @@ async function analyzeContract(address, chain) {
     rpcCall(chain, 'eth_call', [{ to: address, data: SEL.owner }, 'latest']),
   ]);
 
-  // Decode results
   const implAddr = implSlot.status === 'fulfilled' ? decodeAddress(implSlot.value) : null;
   const adminAddr = adminSlot.status === 'fulfilled' ? decodeAddress(adminSlot.value) : null;
   const name = nameRes.status === 'fulfilled' ? decodeString(nameRes.value) : null;
@@ -350,73 +515,58 @@ async function analyzeContract(address, chain) {
   const totalSupply = supplyRes.status === 'fulfilled' ? decodeUint(supplyRes.value) : null;
   const decimals = decimalsRes.status === 'fulfilled' ? decodeUint(decimalsRes.value) : null;
   const owner = ownerRes.status === 'fulfilled' ? decodeAddress(ownerRes.value) : null;
-
   const isProxy = !!implAddr;
 
-  // Bytecode analysis
   let riskScore = 0;
   const riskFlags = [];
   const detectedFunctions = [];
 
-  // Check function signatures
   for (const item of DANGER_SIGS) {
     if (codeHex.includes(item.sig)) {
-      detectedFunctions.push(item.name);
+      if (item.weight !== 0) detectedFunctions.push(item.name);
       if (item.weight > 0) {
         riskScore += item.weight;
-        if (item.weight >= 8) riskFlags.push('has_' + item.name.split('(')[0]);
+        if (item.weight >= 8) riskFlags.push(item.name);
       } else if (item.weight < 0) {
-        riskScore += item.weight; // negative = reduces risk
+        riskScore += item.weight;
+        riskFlags.push(item.name);
       }
     }
   }
 
-  // Check dangerous patterns
-  for (const p of DANGER_PATTERNS) {
-    if (codeHex.includes(p.pattern) && p.name === 'SELFDESTRUCT') {
-      // Only flag SELFDESTRUCT if it's actually the opcode (0xff at a reasonable position)
-      const idx = codeHex.indexOf('ff');
-      if (idx > 10) { // skip if it's just part of an address
-        riskScore += p.weight;
-        riskFlags.push(p.name);
-      }
-    } else if (codeHex.includes(p.pattern)) {
-      riskScore += p.weight;
-      riskFlags.push(p.name);
-    }
+  // tx.origin check
+  if (codeHex.includes('3373ffffffffffffffffffffffffffffffffffffffff14')) {
+    riskScore += 15;
+    riskFlags.push('tx.origin check');
   }
 
-  // Proxy risk
-  if (isProxy) {
-    riskScore += 10;
-    riskFlags.push('upgradeable_proxy');
-  }
+  if (isProxy) { riskScore += 10; riskFlags.push('upgradeable_proxy'); }
 
-  // Owner risk
-  if (owner && owner !== '0x0000000000000000000000000000000000000000') {
+  if (owner && owner !== '0x' + '0'.repeat(40)) {
     riskScore += 5;
     riskFlags.push('has_owner');
   }
 
-  // Very small code = could be just a proxy/minimal
   if (codeSize < 100 && !isProxy) {
     riskScore += 5;
     riskFlags.push('minimal_bytecode');
   }
 
-  // Clamp
+  // Sourcify verification reduces risk
+  if (sourcifyResult === 'full') { riskScore -= 10; riskFlags.push('sourcify_verified'); }
+  else if (sourcifyResult === 'partial') { riskScore -= 5; riskFlags.push('sourcify_partial'); }
+
   riskScore = Math.max(0, Math.min(100, riskScore));
 
-  // Build result
   const result = {
-    address,
-    chain,
+    address, chain,
     risk_score: riskScore,
     risk_level: riskScore >= 60 ? 'HIGH' : riskScore >= 30 ? 'MEDIUM' : 'LOW',
     risk_flags: riskFlags,
     is_contract: true,
     bytecode_size: codeSize,
     is_proxy: isProxy,
+    sourcify_verified: sourcifyResult,
   };
 
   if (implAddr) result.implementation = implAddr;
@@ -433,9 +583,111 @@ async function analyzeContract(address, chain) {
   return result;
 }
 
+// URL sharing
+function updateURL(addr, chain) {
+  const url = new URL(window.location);
+  url.searchParams.set('address', addr);
+  url.searchParams.set('chain', chain);
+  history.replaceState(null, '', url);
+}
+
+function copyShareLink() {
+  const addr = document.getElementById('address').value.trim();
+  const chain = document.getElementById('chain').value;
+  const url = `${window.location.origin}${window.location.pathname}?address=${addr}&chain=${chain}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('.share-bar .btn-copy');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Share Link'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function copyJSON() {
+  const json = document.getElementById('result')._resultJSON;
+  if (json) {
+    navigator.clipboard.writeText(json).then(() => {
+      const btns = document.querySelectorAll('.share-bar .btn-copy');
+      const btn = btns[1];
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy JSON'; btn.classList.remove('copied'); }, 1500);
+    });
+  }
+}
+
+// History
+function saveToHistory(result) {
+  const history = JSON.parse(localStorage.getItem('cs_history') || '[]');
+  const entry = {
+    address: result.address, chain: result.chain,
+    risk_score: result.risk_score, risk_level: result.risk_level,
+    token_symbol: result.token_symbol || null,
+    ts: Date.now()
+  };
+  // Remove duplicate
+  const filtered = history.filter(h => !(h.address === entry.address && h.chain === entry.chain));
+  filtered.unshift(entry);
+  localStorage.setItem('cs_history', JSON.stringify(filtered.slice(0, 20)));
+  renderHistory();
+}
+
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem('cs_history') || '[]');
+  const section = document.getElementById('historySection');
+  const list = document.getElementById('historyList');
+  if (history.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = history.slice(0, 5).map(h => {
+    const rClass = h.risk_score >= 60 ? 'color:#ff4444' : h.risk_score >= 30 ? 'color:#ffaa00' : 'color:#00ff88';
+    const label = h.token_symbol ? h.token_symbol + ' ' : '';
+    return `<div class="history-item" onclick="loadFromHistory('${h.address}','${h.chain}')">
+      <span class="h-chain">${h.chain}</span>
+      <span class="h-addr">${label}${h.address.slice(0,6)}...${h.address.slice(-4)}</span>
+      <span class="h-risk" style="${rClass}">${h.risk_level} (${h.risk_score})</span>
+    </div>`;
+  }).join('');
+}
+
+function loadFromHistory(addr, chain) {
+  document.getElementById('address').value = addr;
+  document.getElementById('chain').value = chain;
+  doScan();
+}
+
+// Scan counter
+function incrementCounter() {
+  const count = parseInt(localStorage.getItem('cs_count') || '0') + 1;
+  localStorage.setItem('cs_count', count.toString());
+  document.getElementById('scanCounter').textContent = count + ' scans performed';
+}
+
+function loadExample() {
+  // USDT on Ethereum
+  document.getElementById('address').value = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+  document.getElementById('chain').value = 'ethereum';
+  doScan();
+}
+
+// Init
 document.getElementById('address').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doScan();
 });
+
+// Load from URL params
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const addr = params.get('address');
+  const chain = params.get('chain');
+  if (addr && /^0x[a-fA-F0-9]{40}$/i.test(addr)) {
+    document.getElementById('address').value = addr;
+    if (chain && RPC[chain]) document.getElementById('chain').value = chain;
+    setTimeout(doScan, 100);
+  }
+  renderHistory();
+  const count = parseInt(localStorage.getItem('cs_count') || '0');
+  if (count > 0) document.getElementById('scanCounter').textContent = count + ' scans performed';
+})();
 </script>
 </body>
 </html>
