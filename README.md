@@ -128,3 +128,17 @@ docs/
 ## License
 
 MIT
+
+## GitHub Action
+
+Use ContractScan in your CI/CD pipeline:
+
+```yaml
+- uses: dutchaiagency/contractscan-action@v1
+  with:
+    addresses: '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+    chain: 'ethereum'
+    fail-on-risk: '70'
+```
+
+See [contractscan-action](https://github.com/dutchaiagency/contractscan-action) for full documentation.
